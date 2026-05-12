@@ -392,13 +392,16 @@ function setScene(i,btn){
 
 // ── YEAR SLIDER ───────────────────────────────────────────
 function updateYrBadge(){
-  document.getElementById('yr-num').textContent=YEARS[curYr];
-  document.getElementById('yr-disp').textContent=YEARS[curYr];
+  var y=YEARS[curYr];
+  document.getElementById('yr-num').textContent=y;
+  document.getElementById('yr-disp').textContent=y;
   document.getElementById('year-slider').value=curYr;
 }
 function onSlide(v){
-  curYr=v;
-  updateYrBadge();
+  curYr=parseInt(v);
+  document.getElementById('year-slider').value=curYr;
+  document.getElementById('yr-disp').textContent=YEARS[curYr];
+  document.getElementById('yr-num').textContent=YEARS[curYr];
   drawDistricts();
 }
 function togglePlay(){
@@ -409,6 +412,7 @@ function togglePlay(){
     playTmr=setInterval(function(){
       curYr=curYr>=9?0:curYr+1;
       onSlide(curYr);
+      if(curYr>=9 && playing){togglePlay();} // auto-stop at end
     },900);
   } else {
     btn.innerHTML='&#9654; Play';
