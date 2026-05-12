@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<<<<<<< HEAD
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
 <title>IntelliWhere — Hanoi Flood Risk</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -523,3 +524,589 @@ updateYrBadge();
 </script>
 </body>
 </html>
+=======
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IntelliWhere — Hanoi Flood Risk Monitor</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0d1117;color:#e8eaf0;overflow:hidden}
+#map{width:100vw;height:100vh}
+
+/* TOP BAR */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:1000;
+  background:rgba(13,17,23,0.94);border-bottom:1px solid rgba(27,127,160,0.4);
+  padding:0 18px;height:48px;display:flex;align-items:center;justify-content:space-between;
+  backdrop-filter:blur(8px)}
+.logo{display:flex;align-items:center;gap:9px}
+.logo-dot{width:9px;height:9px;border-radius:50%;background:#3d8ef0}
+.logo-name{font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.2px}
+.logo-tag{font-size:11px;color:#5a7a9a;font-style:italic}
+.topbar-center{font-size:12px;color:#5a7a9a}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.demo-badge{background:rgba(61,142,240,0.2);color:#3d8ef0;font-size:10px;
+  font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid rgba(61,142,240,0.4);letter-spacing:.05em}
+
+/* SCENARIO PILLS */
+#scenario-bar{position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:999;
+  display:flex;gap:6px;padding:6px 10px;background:rgba(13,17,23,0.88);
+  border-radius:0 0 10px 10px;border:1px solid rgba(27,127,160,0.25);border-top:none;
+  backdrop-filter:blur(6px)}
+.spill{font-size:11px;font-weight:600;padding:5px 14px;border-radius:20px;
+  border:1px solid rgba(27,127,160,0.35);cursor:pointer;color:#5a8aaa;
+  background:transparent;transition:all 0.18s;white-space:nowrap}
+.spill:hover{background:rgba(27,127,160,0.2);color:#fff}
+.spill.active{background:#1b7fa0;border-color:#1b7fa0;color:#fff;font-weight:700}
+
+/* LEFT SIDEBAR */
+#left-panel{position:fixed;top:48px;left:0;bottom:0;z-index:900;width:260px;
+  background:rgba(10,14,24,0.96);border-right:1px solid rgba(27,127,160,0.3);
+  display:flex;flex-direction:column;overflow:hidden}
+#left-panel .panel-hdr{padding:10px 14px;border-bottom:1px solid rgba(27,127,160,0.2);
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1b7fa0}
+#district-list{flex:1;overflow-y:auto;padding:6px 0;
+  scrollbar-width:thin;scrollbar-color:#1b7fa0 #0d1117}
+#district-list::-webkit-scrollbar{width:4px}
+#district-list::-webkit-scrollbar-thumb{background:#1b7fa0;border-radius:2px}
+.d-item{padding:8px 14px;cursor:pointer;border-left:3px solid transparent;transition:all .15s;display:flex;align-items:center;justify-content:space-between}
+.d-item:hover{background:rgba(27,127,160,0.1);border-left-color:#1b7fa0}
+.d-item.sel{background:rgba(27,127,160,0.18);border-left-color:#3d8ef0}
+.d-name{font-size:12px;font-weight:500;color:#c8d6e8}
+.d-score{font-size:12px;font-weight:700}
+.d-bar-wrap{height:3px;background:#1a2535;border-radius:2px;margin-top:4px;flex:1;margin-left:8px;margin-right:8px}
+.d-bar{height:3px;border-radius:2px;transition:width .3s}
+
+/* RIGHT SIDEBAR */
+#right-panel{position:fixed;top:48px;right:0;bottom:0;z-index:900;width:300px;
+  background:rgba(10,14,24,0.96);border-left:1px solid rgba(27,127,160,0.3);
+  overflow-y:auto;scrollbar-width:thin;scrollbar-color:#1b7fa0 #0d1117}
+#right-panel::-webkit-scrollbar{width:4px}
+#right-panel::-webkit-scrollbar-thumb{background:#1b7fa0;border-radius:2px}
+.rp-section{padding:12px 14px;border-bottom:1px solid rgba(27,127,160,0.15)}
+.rp-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1b7fa0;margin-bottom:8px}
+
+/* DISTRICT DETAIL */
+.det-name{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px}
+.det-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 10px;
+  border-radius:20px;margin-bottom:12px;letter-spacing:.04em}
+.det-row{display:flex;justify-content:space-between;padding:6px 0;
+  border-bottom:1px solid rgba(27,127,160,0.1);font-size:11.5px}
+.det-row:last-of-type{border-bottom:none}
+.det-label{color:#5a7a9a}
+.det-val{font-weight:600;color:#c8d6e8}
+.risk-bar-bg{height:5px;background:#1a2535;border-radius:3px;margin-top:10px}
+.risk-bar-fg{height:5px;border-radius:3px;transition:width .4s}
+.incident-box{background:rgba(27,127,160,0.1);border-left:3px solid #1b7fa0;
+  padding:8px 10px;border-radius:0 6px 6px 0;margin-top:10px;font-size:11px;
+  color:#a8c8e0;line-height:1.55}
+.inc-label{font-size:9px;font-weight:700;color:#1b7fa0;text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:3px}
+
+/* METRIC CARDS */
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px}
+.m-card{background:rgba(27,127,160,0.1);border-radius:8px;padding:10px 11px}
+.m-label{font-size:10px;color:#5a7a9a;margin-bottom:4px}
+.m-val{font-size:18px;font-weight:700}
+.m-sub{font-size:9px;color:#5a7a9a;margin-top:2px}
+
+/* SCENARIO CARDS */
+.scen-card{border-left:3px solid transparent;border-radius:0 6px 6px 0;
+  padding:8px 10px;margin-bottom:6px;background:rgba(27,127,160,0.08)}
+.scen-name{font-size:11px;font-weight:700;margin-bottom:3px}
+.scen-npv{font-size:15px;font-weight:800}
+.scen-meta{font-size:10px;color:#5a7a9a;margin-top:2px}
+
+/* FIN TABLE */
+.fin-row{display:flex;justify-content:space-between;padding:5px 0;
+  border-bottom:1px solid rgba(27,127,160,0.1);font-size:11px}
+.fin-row:last-child{border-bottom:none}
+.fin-l{color:#5a7a9a}
+.fin-v{font-weight:600}
+
+/* CHART */
+.chart-wrap{position:relative;height:160px;padding:10px 12px 12px}
+
+/* LEGEND */
+#legend{position:fixed;bottom:16px;left:270px;z-index:900;
+  background:rgba(10,14,24,0.94);border:1px solid rgba(27,127,160,0.3);
+  border-radius:10px;padding:10px 14px;min-width:160px;backdrop-filter:blur(6px)}
+.leg-title{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:#1b7fa0;margin-bottom:7px}
+.leg-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11px;color:#8ab0c8}
+.leg-sq{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+
+/* YEAR SLIDER */
+#slider-bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:900;
+  background:rgba(10,14,24,0.94);border:1px solid rgba(27,127,160,0.3);
+  border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:12px;
+  backdrop-filter:blur(6px);min-width:420px}
+.sl-label{font-size:11px;color:#5a7a9a;white-space:nowrap}
+#year-slider{flex:1;-webkit-appearance:none;height:4px;background:rgba(27,127,160,0.3);
+  border-radius:2px;outline:none}
+#year-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+  border-radius:50%;background:#1b7fa0;cursor:pointer}
+.sl-year{font-size:13px;font-weight:700;color:#fff;min-width:34px}
+#play-btn{background:#1b7fa0;border:none;border-radius:6px;padding:5px 12px;
+  color:#fff;font-size:11px;cursor:pointer;white-space:nowrap}
+#play-btn:hover{background:#3d8ef0}
+
+/* LAYER BTN */
+#layer-btn{position:fixed;top:96px;right:310px;z-index:900;
+  background:rgba(10,14,24,0.92);border:1px solid rgba(27,127,160,0.35);
+  color:#8ab0c8;padding:7px 13px;border-radius:8px;cursor:pointer;
+  font-size:11px;font-weight:600;transition:all .2s;backdrop-filter:blur(6px)}
+#layer-btn:hover{background:rgba(27,127,160,0.25);color:#fff}
+
+/* HINT */
+#map-hint{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:800;
+  font-size:10px;color:#3a5a6a;pointer-events:none;text-align:center}
+
+/* PLACEHOLDER */
+#detail-placeholder{font-size:11px;color:#3a5a6a;padding:4px 0;line-height:1.6}
+
+.reg-row{display:flex;gap:8px;align-items:baseline;padding:4px 0;font-size:11px;
+  border-bottom:1px solid rgba(27,127,160,0.1)}
+.reg-row:last-child{border-bottom:none}
+.reg-year{font-weight:700;min-width:36px}
+.reg-txt{color:#8ab0c8;line-height:1.45}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <span class="logo-name">IntelliWhere</span>
+    <span class="logo-tag">— Location speaks. We translate.</span>
+  </div>
+  <div class="topbar-center">Hanoi Flood Risk Monitor &nbsp;·&nbsp; 19 Districts &nbsp;·&nbsp; Satellite + Risk Intelligence</div>
+  <div class="topbar-right">
+    <span style="font-size:11px;color:#3a5a6a">Generated 2026-05-10</span>
+    <span class="demo-badge">DEMO</span>
+  </div>
+</div>
+
+<!-- SCENARIO PILLS -->
+<div id="scenario-bar">
+  <button class="spill active" onclick="setScenario('baseline',this)">Baseline 2026</button>
+  <button class="spill" onclick="setScenario('conservative',this)">2050 Conservative +5%</button>
+  <button class="spill" onclick="setScenario('moderate',this)">2050 Moderate +10%</button>
+  <button class="spill" onclick="setScenario('aggressive',this)">2050 Aggressive +15%</button>
+</div>
+
+<!-- MAP -->
+<div id="map"></div>
+
+<!-- LEFT PANEL -->
+<div id="left-panel">
+  <div class="panel-hdr">Districts — risk index</div>
+  <div id="district-list"></div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div id="right-panel">
+
+  <div class="rp-section">
+    <div class="rp-title">District detail</div>
+    <div id="detail-panel">
+      <div id="detail-placeholder">Click a district on the map or list to see its full risk breakdown.</div>
+    </div>
+  </div>
+
+  <div class="rp-section" style="padding:0">
+    <div class="metric-grid">
+      <div class="m-card">
+        <div class="m-label">City avg risk</div>
+        <div class="m-val" style="color:#d4b020" id="m-avg">50.3</div>
+        <div class="m-sub">out of 100</div>
+      </div>
+      <div class="m-card">
+        <div class="m-label">Critical districts</div>
+        <div class="m-val" style="color:#e03030" id="m-crit">1</div>
+        <div class="m-sub">of 19</div>
+      </div>
+      <div class="m-card">
+        <div class="m-label">Property exposure</div>
+        <div class="m-val" style="color:#e8eaf0;font-size:15px">$86B</div>
+        <div class="m-sub">42% in high/critical</div>
+      </div>
+      <div class="m-card">
+        <div class="m-label">Adapt. NPV</div>
+        <div class="m-val" style="color:#30a050;font-size:15px">$807M</div>
+        <div class="m-sub">IRR 7,441%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rp-section">
+    <div class="rp-title">30-year adaptation scenarios</div>
+    <div class="scen-card" style="border-color:#30a050">
+      <div class="scen-name">Proactive (invest 2026–28)</div>
+      <div class="scen-npv" style="color:#30a050">+$807.5M NPV</div>
+      <div class="scen-meta">IRR 7,441% &nbsp;·&nbsp; Payback 1yr &nbsp;·&nbsp; Capex $5M</div>
+    </div>
+    <div class="scen-card" style="border-color:#d4b020">
+      <div class="scen-name">Reactive (after flood, Yr 7)</div>
+      <div class="scen-npv" style="color:#d4b020">+$165.2M NPV</div>
+      <div class="scen-meta">IRR 6.62% &nbsp;·&nbsp; Payback 22yr &nbsp;·&nbsp; Capex $12.5M</div>
+    </div>
+    <div class="scen-card" style="border-color:#e03030">
+      <div class="scen-name">No action</div>
+      <div class="scen-npv" style="color:#e03030">−$1,572.9M NPV</div>
+      <div class="scen-meta">$60M expected annual loss &nbsp;·&nbsp; 8%/yr insurance</div>
+    </div>
+  </div>
+
+  <div class="rp-section">
+    <div class="rp-title">Financial summary</div>
+    <div class="fin-row"><span class="fin-l">Proactive vs none advantage</span><span class="fin-v" style="color:#30a050">$2.38B</span></div>
+    <div class="fin-row"><span class="fin-l">30yr insurance w/o adapt.</span><span class="fin-v" style="color:#e03030">$3.94B</span></div>
+    <div class="fin-row"><span class="fin-l">30yr insurance with adapt.</span><span class="fin-v" style="color:#30a050">$1.58B</span></div>
+    <div class="fin-row"><span class="fin-l">Total property exposure</span><span class="fin-v">$86B</span></div>
+    <div class="fin-row"><span class="fin-l">In HIGH/CRITICAL zones</span><span class="fin-v" style="color:#e03030">$36.1B</span></div>
+  </div>
+
+  <div class="rp-section">
+    <div class="rp-title">Monthly rainfall — Hanoi</div>
+    <div class="chart-wrap">
+      <canvas id="rain-chart" role="img" aria-label="Monthly rainfall bar chart, peak August 320mm">Monthly rainfall data</canvas>
+    </div>
+  </div>
+
+  <div class="rp-section">
+    <div class="rp-title">Regulatory deadlines</div>
+    <div class="reg-row"><span class="reg-year" style="color:#e03030">2026</span><span class="reg-txt">Climate risk disclosure (TCFD mandatory)</span></div>
+    <div class="reg-row"><span class="reg-year" style="color:#e07830">2028</span><span class="reg-txt">Building code update to 120mm/24hr standard</span></div>
+    <div class="reg-row"><span class="reg-year" style="color:#d4b020">2030</span><span class="reg-txt">Mandatory flood insurance for assets &gt;$5M</span></div>
+    <div class="reg-row"><span class="reg-year" style="color:#30a050">2032</span><span class="reg-txt">Zoning restriction below elevation 12m</span></div>
+  </div>
+
+  <div class="rp-section">
+    <div class="rp-title">Data sources</div>
+    <div style="font-size:10px;color:#3a5a6a;line-height:1.8">
+      IMHEN 34-yr climate record (1991–2025)<br>
+      CHIRPS gridded rainfall · MERIT DEM elevation<br>
+      JRC Global Surface Water (flood extent)<br>
+      Vietnam MOC drainage infrastructure<br>
+      Esri World Imagery · CartoDB labels
+    </div>
+  </div>
+
+</div>
+
+<!-- LEGEND -->
+<div id="legend">
+  <div class="leg-title">Risk index</div>
+  <div class="leg-row"><div class="leg-sq" style="background:#c0392b"></div>Critical (≥75)</div>
+  <div class="leg-row"><div class="leg-sq" style="background:#e07830"></div>High (60–74)</div>
+  <div class="leg-row"><div class="leg-sq" style="background:#d4b020"></div>Moderate (40–59)</div>
+  <div class="leg-row"><div class="leg-sq" style="background:#27ae60"></div>Low (&lt;40)</div>
+  <div style="height:6px"></div>
+  <div id="scen-readout" style="font-size:10px;color:#1b7fa0;font-weight:600">Baseline 2026</div>
+  <div style="font-size:10px;color:#3a5a6a">Avg: <span id="avg-read">50.3</span> &nbsp;·&nbsp; Critical: <span id="crit-read">1</span></div>
+</div>
+
+<!-- YEAR SLIDER -->
+<div id="slider-bar">
+  <button id="play-btn" onclick="togglePlay()">▶ Play</button>
+  <span class="sl-label">Year</span>
+  <input type="range" id="year-slider" min="0" max="9" value="0" step="1" oninput="onSlide(this.value)"/>
+  <span class="sl-year" id="year-disp">2026</span>
+  <span style="font-size:10px;color:#3a5a6a">Animate risk 2026–2035</span>
+</div>
+
+<div id="map-hint">Hover district for preview · Click to select · Scroll to zoom</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────
+const DISTRICTS = [
+  {name:"Hoàn Kiếm",   risk:76.2, level:"CRITICAL", rain:300, elev:8,  drain:"Old",     density:"Very High", incident:"Aug 2008 monsoon flood: central Hanoi inundated 0.5–1.0m, 155 deaths, $100M damage.",
+   coords:[[21.032,105.848],[21.038,105.858],[21.034,105.868],[21.026,105.868],[21.022,105.858],[21.026,105.848]]},
+  {name:"Long Biên",   risk:74.4, level:"HIGH",     rain:310, elev:7,  drain:"Old",     density:"Med-High",  incident:"Red River flood 2018: Long Bien dike stress, 2,400 hectares of agricultural land submerged.",
+   coords:[[21.042,105.868],[21.055,105.878],[21.062,105.900],[21.055,105.920],[21.040,105.918],[21.032,105.900],[21.034,105.878]]},
+  {name:"Hai Bà Trưng",risk:73.4, level:"HIGH",     rain:305, elev:9,  drain:"Old",     density:"High",      incident:"Repeated urban flooding post-2015: Minh Khai, Truong Dinh streets — 0.3–0.8m inundation events.",
+   coords:[[21.022,105.848],[21.026,105.868],[21.024,105.880],[21.014,105.882],[21.006,105.872],[21.010,105.852]]},
+  {name:"Hà Nội (Ba Đình)",risk:72.9,level:"HIGH",  rain:290, elev:10, drain:"Old",     density:"Very High", incident:"Government quarter flooding July 2018: Ho Tay area overflow. Vietnam MOC emergency response activated.",
+   coords:[[21.032,105.828],[21.038,105.840],[21.038,105.852],[21.032,105.850],[21.026,105.848],[21.024,105.838]]},
+  {name:"Đống Đa",     risk:68.8, level:"HIGH",     rain:295, elev:12, drain:"Old",     density:"High",      incident:"Aug 2024 Typhoon Yagi aftermath: flash flooding along To Lich River, 800+ families displaced.",
+   coords:[[21.024,105.838],[21.032,105.850],[21.030,105.862],[21.022,105.858],[21.016,105.845],[21.018,105.833]]},
+  {name:"Thanh Xuân",  risk:58.2, level:"MODERATE", rain:285, elev:15, drain:"Moderate",density:"High",      incident:"Localised flooding 2022 on Nguyen Trai corridor. Moderate drainage — resilience improving.",
+   coords:[[21.010,105.830],[21.018,105.833],[21.016,105.848],[21.008,105.848],[21.002,105.838],[21.004,105.826]]},
+  {name:"Cầu Giấy",    risk:54.0, level:"MODERATE", rain:280, elev:18, drain:"Moderate",density:"High",      incident:"Seasonal ponding at low-lying underpasses. No major flood events since 2015 upgrades.",
+   coords:[[21.032,105.788],[21.038,105.800],[21.038,105.818],[21.030,105.820],[21.024,105.810],[21.026,105.794]]},
+  {name:"Hoàng Mai",   risk:51.4, level:"MODERATE", rain:290, elev:16, drain:"Moderate",density:"Medium",    incident:"Yen So Lake area seasonal overflow. UNDP-funded drainage project partially implemented 2023.",
+   coords:[[21.006,105.856],[21.014,105.860],[21.014,105.878],[21.006,105.880],[20.998,105.870],[21.000,105.854]]},
+  {name:"Tây Hồ",      risk:45.1, level:"MODERATE", rain:275, elev:20, drain:"Moderate",density:"Medium",    incident:"West Lake (Ho Tay) overflow risk during extreme monsoon. Historical events: 1971, 2008 periphery flooding.",
+   coords:[[21.054,105.812],[21.060,105.828],[21.056,105.842],[21.046,105.842],[21.040,105.832],[21.044,105.816]]},
+  {name:"Hà Đông",     risk:43.8, level:"MODERATE", rain:260, elev:28, drain:"Moderate",density:"Medium",    incident:"Minor flooding along Nhue River. Urban expansion increasing impermeable surface — risk trending up.",
+   coords:[[20.970,105.764],[20.980,105.776],[20.980,105.796],[20.968,105.798],[20.958,105.786],[20.960,105.768]]},
+  {name:"Thanh Oai",   risk:42.3, level:"MODERATE", rain:255, elev:30, drain:"Old",     density:"Low",       incident:"Rural agricultural flooding 2017: Day River overflow. Old drainage constrains resilience.",
+   coords:[[20.945,105.762],[20.958,105.770],[20.958,105.788],[20.946,105.790],[20.934,105.778],[20.936,105.762]]},
+  {name:"Chương Mỹ",   risk:42.0, level:"MODERATE", rain:252, elev:32, drain:"Old",     density:"Low",       incident:"2018 severe flooding: 3,000 hectares submerged for weeks, 3,000 households evacuated. Notable event.",
+   coords:[[20.940,105.720],[20.952,105.730],[20.954,105.750],[20.942,105.754],[20.928,105.742],[20.930,105.722]]},
+  {name:"Từ Liêm",     risk:38.6, level:"LOW",      rain:270, elev:22, drain:"Modern",  density:"Medium",    incident:"No significant flood events. Modern drainage installed 2019–2022. Lowest risk in inner ring.",
+   coords:[[21.038,105.762],[21.046,105.776],[21.046,105.794],[21.036,105.796],[21.028,105.784],[21.030,105.766]]},
+  {name:"Nam Từ Liêm", risk:38.2, level:"LOW",      rain:265, elev:25, drain:"Modern",  density:"Medium",    incident:"New urban development zone. Modern stormwater infrastructure. Minimal flood history.",
+   coords:[[21.020,105.762],[21.028,105.774],[21.028,105.792],[21.018,105.794],[21.010,105.782],[21.012,105.764]]},
+  {name:"Hoài Đức",    risk:35.9, level:"LOW",      rain:250, elev:35, drain:"Modern",  density:"Medium",    incident:"Elevated terrain. Day River proximity managed by embankment. Low inundation frequency.",
+   coords:[[21.048,105.726],[21.058,105.738],[21.058,105.756],[21.046,105.758],[21.036,105.746],[21.038,105.728]]},
+  {name:"Bắc Từ Liêm", risk:35.5, level:"LOW",      rain:268, elev:24, drain:"Modern",  density:"Medium",    incident:"Industrial and residential expansion zone. Infrastructure investment 2020–2024. Low risk profile.",
+   coords:[[21.054,105.756],[21.062,105.768],[21.062,105.786],[21.052,105.788],[21.042,105.778],[21.044,105.758]]},
+  {name:"Mỹ Đức",      risk:35.4, level:"LOW",      rain:245, elev:38, drain:"Old",     density:"Low",       incident:"Remote rural district. Huong Pagoda area seasonal flooding but limited built exposure.",
+   coords:[[20.600,105.720],[20.618,105.730],[20.620,105.752],[20.606,105.756],[20.590,105.742],[20.592,105.722]]},
+  {name:"Sóc Sơn",     risk:35.0, level:"LOW",      rain:240, elev:40, drain:"Old",     density:"Low",       incident:"Elevated northern hills. Occasional flash flooding in valleys. Built exposure minimal.",
+   coords:[[21.200,105.836],[21.218,105.848],[21.220,105.868],[21.206,105.872],[21.190,105.858],[21.192,105.840]]},
+  {name:"Phúc Thọ",    risk:34.6, level:"LOW",      rain:235, elev:42, drain:"Old",     density:"Low",       incident:"Elevated agricultural district. Day River levees intact. Lowest composite risk score in dataset.",
+   coords:[[21.080,105.552],[21.098,105.564],[21.100,105.584],[21.086,105.588],[21.070,105.574],[21.072,105.554]]},
+];
+
+const SCENARIOS = {
+  baseline:     {label:"Baseline 2026",      mult:1.00, avg:"50.3", crit:1},
+  conservative: {label:"2050 Conservative",  mult:1.075,avg:"51.5", crit:2},
+  moderate:     {label:"2050 Moderate",      mult:1.15, avg:"52.7", crit:4},
+  aggressive:   {label:"2050 Aggressive",    mult:1.22, avg:"53.9", crit:4},
+};
+
+const YEARS = [2026,2027,2028,2029,2030,2031,2032,2033,2034,2035];
+const YEAR_MULTS = [1.00,1.02,1.04,1.06,1.09,1.12,1.15,1.18,1.21,1.24];
+
+let curScenario = 'baseline';
+let curYear = 0;
+let selIdx = null;
+let polyLayers = [];
+let playing = false;
+let playTimer = null;
+
+// ── COLOURS ───────────────────────────────────────────────────────────
+function riskColor(s){
+  if(s>=75) return '#c0392b';
+  if(s>=60) return '#e07830';
+  if(s>=40) return '#c9a200';
+  return '#27ae60';
+}
+function riskColorBright(s){
+  if(s>=75) return '#e74c3c';
+  if(s>=60) return '#f39c12';
+  if(s>=40) return '#f1c40f';
+  return '#2ecc71';
+}
+function riskLevel(s){
+  if(s>=75) return 'CRITICAL';
+  if(s>=60) return 'HIGH';
+  if(s>=40) return 'MODERATE';
+  return 'LOW';
+}
+function adjRisk(base){
+  return Math.min(100, Math.round(base * SCENARIOS[curScenario].mult * YEAR_MULTS[curYear] * 10)/10);
+}
+
+// ── MAP INIT ──────────────────────────────────────────────────────────
+var map = L.map('map',{
+  center:[21.027,105.834],
+  zoom:11,
+  zoomControl:false,
+  attributionControl:true
+});
+
+// Satellite base
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+  attribution:'Esri | NASA SRTM | NOAA | CHIRPS | IntelliWhere',
+  maxZoom:19
+}).addTo(map);
+
+// Labels overlay
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',{
+  opacity:0.8, maxZoom:19, subdomains:'abcd'
+}).addTo(map);
+
+L.control.zoom({position:'bottomright'}).addTo(map);
+
+// ── DRAW POLYGONS ─────────────────────────────────────────────────────
+function drawPolygons(){
+  polyLayers.forEach(p=>map.removeLayer(p));
+  polyLayers = [];
+
+  DISTRICTS.forEach(function(d, i){
+    var score = adjRisk(d.risk);
+    var col = riskColor(score);
+    var colBright = riskColorBright(score);
+    var isSelected = selIdx === i;
+
+    var poly = L.polygon(d.coords, {
+      color: isSelected ? '#fff' : col,
+      weight: isSelected ? 2.5 : 1.5,
+      opacity: 0.95,
+      fillColor: col,
+      fillOpacity: isSelected ? 0.55 : 0.38,
+      smoothFactor: 1
+    }).addTo(map);
+
+    // Popup
+    var pop = '<div style="font-family:Arial;min-width:240px;padding:4px">' +
+      '<div style="font-size:14px;font-weight:700;color:#1a2744;margin-bottom:4px">'+d.name+'</div>' +
+      '<hr style="border:none;border-top:2px solid '+col+';margin:0 0 8px 0"/>' +
+      '<table style="width:100%;font-size:12px;border-collapse:collapse">' +
+      '<tr><td style="padding:3px 0;color:#555;width:44%"><b>Risk index</b></td><td style="font-weight:700;color:'+col+'">'+score.toFixed(1)+' / 100</td></tr>' +
+      '<tr><td style="padding:3px 0;color:#555"><b>Level</b></td><td style="color:'+col+';font-weight:700">'+riskLevel(score)+'</td></tr>' +
+      '<tr><td style="padding:3px 0;color:#555"><b>Rainfall</b></td><td>'+d.rain+' mm/yr</td></tr>' +
+      '<tr><td style="padding:3px 0;color:#555"><b>Elevation</b></td><td>'+d.elev+' m ASL</td></tr>' +
+      '<tr><td style="padding:3px 0;color:#555"><b>Drainage</b></td><td>'+d.drain+'</td></tr>' +
+      '</table>' +
+      '<div style="margin-top:8px;padding:7px 9px;background:rgba(0,0,0,0.06);border-left:3px solid '+col+';border-radius:0 5px 5px 0;font-size:11px;color:#333;line-height:1.5">' +
+      '<div style="font-weight:700;font-size:9px;color:'+col+';margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Verified incident</div>' +
+      d.incident + '</div>' +
+      '<div style="margin-top:5px;font-size:9px;color:#999">Sources: IMHEN · CHIRPS · JRC · Vietnam MOC · IntelliWhere</div>' +
+      '</div>';
+
+    poly.bindPopup(pop, {maxWidth:300});
+
+    poly.on('mouseover', function(){
+      this.setStyle({fillOpacity:0.65, weight:2.5});
+    });
+    poly.on('mouseout', function(){
+      if(selIdx !== i) this.setStyle({fillOpacity: isSelected ? 0.55 : 0.38, weight: isSelected ? 2.5 : 1.5});
+    });
+    poly.on('click', function(){
+      selectDistrict(i);
+    });
+
+    // Label
+    var center = poly.getBounds().getCenter();
+    var lbl = L.divIcon({
+      html:'<div style="color:'+colBright+';font-size:10px;font-weight:700;text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;pointer-events:none;text-align:center">'+
+           d.name+'<br><span style="font-size:11px;letter-spacing:-.2px">'+score.toFixed(0)+'</span></div>',
+      className:'', iconSize:[1,1], iconAnchor:[0,0]
+    });
+    L.marker(center, {icon:lbl, interactive:false, zIndexOffset:-100}).addTo(map);
+
+    polyLayers.push(poly);
+  });
+}
+
+// ── LEFT LIST ─────────────────────────────────────────────────────────
+function buildList(){
+  var container = document.getElementById('district-list');
+  container.innerHTML = '';
+  DISTRICTS.forEach(function(d, i){
+    var score = adjRisk(d.risk);
+    var col = riskColor(score);
+    var el = document.createElement('div');
+    el.className = 'd-item' + (selIdx===i?' sel':'');
+    el.innerHTML =
+      '<div style="flex:1">' +
+        '<div class="d-name">'+d.name+'</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-top:4px">' +
+          '<div class="d-bar-wrap" style="flex:1;height:3px;background:#1a2535;border-radius:2px">' +
+            '<div class="d-bar" style="width:'+score+'%;height:3px;border-radius:2px;background:'+col+'"></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<span class="d-score" style="color:'+col+'">'+score.toFixed(1)+'</span>';
+    el.onclick = function(){ selectDistrict(i); };
+    container.appendChild(el);
+  });
+}
+
+// ── SELECT DISTRICT ───────────────────────────────────────────────────
+function selectDistrict(i){
+  selIdx = i;
+  var d = DISTRICTS[i];
+  var score = adjRisk(d.risk);
+  var col = riskColor(score);
+  var lev = riskLevel(score);
+
+  var badgeColors = {
+    CRITICAL:'background:rgba(192,57,43,0.25);color:#e74c3c;border:1px solid rgba(192,57,43,0.5)',
+    HIGH:'background:rgba(224,120,48,0.25);color:#f39c12;border:1px solid rgba(224,120,48,0.5)',
+    MODERATE:'background:rgba(201,162,0,0.25);color:#f1c40f;border:1px solid rgba(201,162,0,0.5)',
+    LOW:'background:rgba(39,174,96,0.25);color:#2ecc71;border:1px solid rgba(39,174,96,0.5)'
+  };
+
+  document.getElementById('detail-panel').innerHTML =
+    '<div class="det-name">'+d.name+'</div>' +
+    '<span class="det-badge" style="'+badgeColors[lev]+'">'+lev+'</span>' +
+    '<div class="det-row"><span class="det-label">Composite risk index</span><span class="det-val" style="color:'+col+'">'+score.toFixed(1)+' / 100</span></div>' +
+    '<div class="det-row"><span class="det-label">Annual rainfall</span><span class="det-val">'+d.rain+' mm</span></div>' +
+    '<div class="det-row"><span class="det-label">Elevation</span><span class="det-val">'+d.elev+' m ASL</span></div>' +
+    '<div class="det-row"><span class="det-label">Urban density</span><span class="det-val">'+d.density+'</span></div>' +
+    '<div class="det-row"><span class="det-label">Drainage condition</span><span class="det-val">'+d.drain+'</span></div>' +
+    '<div class="risk-bar-bg"><div class="risk-bar-fg" style="width:'+score+'%;background:'+col+'"></div></div>' +
+    '<div class="incident-box"><div class="inc-label">Verified incident</div>'+d.incident+'</div>';
+
+  drawPolygons();
+  buildList();
+  map.flyTo(DISTRICTS[i].coords[0], 13, {animate:true, duration:0.8});
+}
+
+// ── SCENARIO ──────────────────────────────────────────────────────────
+function setScenario(key, btn){
+  curScenario = key;
+  document.querySelectorAll('.spill').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  var sc = SCENARIOS[key];
+  document.getElementById('scen-readout').textContent = sc.label;
+  document.getElementById('avg-read').textContent = sc.avg;
+  document.getElementById('crit-read').textContent = sc.crit;
+  document.getElementById('m-avg').textContent = sc.avg;
+  document.getElementById('m-crit').textContent = sc.crit;
+  drawPolygons();
+  buildList();
+}
+
+// ── YEAR SLIDER ───────────────────────────────────────────────────────
+function onSlide(v){
+  curYear = parseInt(v);
+  document.getElementById('year-disp').textContent = YEARS[curYear];
+  drawPolygons();
+  buildList();
+}
+
+function togglePlay(){
+  playing = !playing;
+  var btn = document.getElementById('play-btn');
+  if(playing){
+    btn.textContent = '⏸ Pause';
+    playTimer = setInterval(function(){
+      curYear = curYear >= 9 ? 0 : curYear+1;
+      document.getElementById('year-slider').value = curYear;
+      onSlide(curYear);
+    }, 900);
+  } else {
+    btn.textContent = '▶ Play';
+    clearInterval(playTimer);
+  }
+}
+
+// ── RAINFALL CHART ────────────────────────────────────────────────────
+var rainCtx = document.getElementById('rain-chart').getContext('2d');
+new Chart(rainCtx, {
+  type:'bar',
+  data:{
+    labels:['J','F','M','A','M','J','J','A','S','O','N','D'],
+    datasets:[{
+      data:[15,10,25,60,180,280,260,320,250,120,50,20],
+      backgroundColor:[15,10,25,60,180,280,260,320,250,120,50,20].map(v=>
+        v>250?'rgba(192,57,43,0.85)':v>150?'rgba(224,120,48,0.85)':v>50?'rgba(201,162,0,0.75)':'rgba(39,174,96,0.7)'),
+      borderRadius:3
+    }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{color:'#3a5a6a',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}},
+      y:{ticks:{color:'#3a5a6a',font:{size:9},callback:v=>v+'mm'},grid:{color:'rgba(255,255,255,0.04)'}}
+    }
+  }
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────
+drawPolygons();
+buildList();
+</script>
+</body>
+</html>
+>>>>>>> 2568b14f2d8945782d6f0619cad313d3ad0a9055
